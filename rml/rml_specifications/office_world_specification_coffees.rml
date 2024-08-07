@@ -1,0 +1,12 @@
+coffee_pick_up matches {f : t} with t = 1.0;
+mail_pick_up(n) matches {e : n} with n > 0;
+drop_off matches {g : t} with t = 1.0;
+not_efg not matches mail_pick_up(n) | coffee_pick_up | drop_off;
+
+Main = not_efg* {let n; mail_pick_up(n) Coffee<n,n>};
+
+Coffee<s,m> = if (s > 0) not_efg* coffee_pick_up Coffee<s-1,m> else Drop<m>;
+
+Drop<s> = if (s > 0) not_efg* drop_off Drop<s-1> else any*;
+
+

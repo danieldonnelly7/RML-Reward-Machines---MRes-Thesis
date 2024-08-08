@@ -109,7 +109,7 @@ def create_encoding(state_str, event_index):
     return vector
 
 
-def generate_events_and_index_1only(the_states):
+def generate_events_and_index_one_hot(the_states):
     # Extract all unique events
     unique_events = set()
     for state in the_states.values():
@@ -124,7 +124,7 @@ def generate_events_and_index_1only(the_states):
         i += 1
     return unique_events, event_index
 
-def encode_state_in_vector_1only(vector, part, event_index):
+def encode_state_in_vector_one_hot(vector, part, event_index):
     """
     Function generates an encoding for a state (called part) in the output vector.
 
@@ -136,7 +136,7 @@ def encode_state_in_vector_1only(vector, part, event_index):
         print('UNKNOWN State')  
     return vector
 
-def create_encoding_1only(state_str, event_index):
+def create_encoding_one_hot(state_str, event_index):
     """
     Function that creates the encoding vector for a given state string.
     """
@@ -146,13 +146,13 @@ def create_encoding_1only(state_str, event_index):
 
     vector = np.zeros(len(event_index))
     part = replace_numerical_parts(part)  # Replacing numerical part so it matches the relevant sub state
-    vector = encode_state_in_vector_1only(vector, part, event_index)
+    vector = encode_state_in_vector_one_hot(vector, part, event_index)
 
     if 'star' in part and 1 < len(parts):    # Handling cases where star is the next state
         next_part = parts[1]                
         
         next_part = replace_numerical_parts(next_part)
-        vector = encode_state_in_vector_1only(vector, next_part, event_index)
+        vector = encode_state_in_vector_one_hot(vector, next_part, event_index)
     
     return vector
 

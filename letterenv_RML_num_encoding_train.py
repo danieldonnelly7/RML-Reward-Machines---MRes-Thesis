@@ -9,7 +9,7 @@ from gymnasium.envs.registration import load_env_creator
 from gymnasium.envs.registration import register
 from rml.rmlgym import RMLGym
 from tqdm import tqdm
-from utils.letterenv_functions_new import learning_episode, evaluation_episode_encoding
+from utils.letterenv_functions import learning_episode, evaluation_episode_encoding
 import matplotlib.pyplot as plt
 import pickle
 from utils.encoding_functions import generate_events_and_index, create_encoding
@@ -83,7 +83,7 @@ def test_loop(event_index, initial_encoding,n):
         num_episodes += 1
         q_table, state, epsilon, total_steps = learning_episode(env, q_table, actions, alpha, gamma, epsilon, total_steps)
         succesful_policy, results_df = evaluation_episode_encoding(env, q_table, actions, 
-                                                                        n, num_episodes, total_steps, results_df, event_index, correct_reward)
+                                                                        n, num_episodes, total_steps, results_df, correct_reward)
     return results_df
 
 def get_test_statistics(event_index, initial_encoding, final_results_df,n):

@@ -77,7 +77,7 @@ if __name__ == "__main__":
 
     np.random.seed(int(SEED))
 
-    N = 2
+    N = 5
     convergence_results = defaultdict(lambda: list())
 
     for n in range(1, N + 1):

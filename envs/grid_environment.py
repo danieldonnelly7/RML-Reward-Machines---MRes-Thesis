@@ -2,18 +2,28 @@ import gymnasium as gym
 from gymnasium import spaces
 import numpy as np
 from envs.office_world import OfficeWorld, OfficeWorld_Delivery, Actions
-from envs.letter_env import LetterEnv
+from envs.letterenv import LetterEnv
 import yaml
 
 class GridEnv(gym.Env):
-    def __init__(self, env, config_path, observation_space_size = 2, render_mode = None):   #  observation_space_siz Default is 2 as it's (x,y). Else it adds the number of monitor states as well
-        #super().__init__(config_path = './examples/office.yaml')
+    def __init__(self, env, config_path, monitor_states = 20, render_mode = None):   #  observation_space_siz Default is 2 as it's (x,y). Else it adds the number of monitor states as well
         self.env = env
-        N,M      = self.env.map_height, self.env.map_width
+        self.propositions = self.env.propositions
+        self.propositions.append("_")
+        self.one_hot_propositions = self.generate_one_hot_propisition(self.propositions)
+
+        N,M      = self.env.n_rows, self.env.n_cols
+        L = len(self.propositions)
         self.action_space = spaces.Discrete(4) # up, right, down, left
 
-        self.observation_space = spaces.Box(low=0, high=max([N,M]), shape=(observation_space_size,), dtype=np.uint8)  
-        self.observation_dict  = spaces.Dict({'features': self.observation_space})
+        self.position_space = spaces.Box(low=0, high=max([N, M]), shape=(L,), dtype=np.uint8)  # (x, y) + objects
+        self.monitor_space = spaces.Box(low=-np.inf, high=np.inf, shape=(monitor_states,), dtype=np.float32)  # Monitor state of size 20
+
+        self.observation_space = spaces.Dict({
+            'position': self.position_space,
+            'monitor': self.monitor_space
+        })        
+
         with open(config_path, "r") as stream:
             try:    
                 config_dict = yaml.safe_load(stream)
@@ -21,6 +31,14 @@ class GridEnv(gym.Env):
                 print(exc)
         self.max_steps = config_dict.get('max_episode_steps', 200)  # Default to 200 if not specified
         self.step_num = 0
+    
+    def generate_one_hot_propisition(self,propositions):
+        proposition_dict = {}
+        i = 0
+        for prop in propositions:
+            proposition_dict[prop] = i
+            i += 1
+        return proposition_dict
 
 
     def get_events(self):
@@ -28,13 +46,15 @@ class GridEnv(gym.Env):
 
     def step(self, action):
         self.step_num += 1
-        self.env.execute_action(action)
-        obs = self.env.get_features()
-        if self.step_num < self.max_steps:
-            truncated = False
-        else:
-            truncated = True
-        done = truncated
+        o = self.env.step(action)
+        obs_tuple = o[0]
+        obs_position = self.obs_from_tuple(obs_tuple)
+        obs = {
+            'position': obs_position,
+            'monitor': self.monitor_state
+        }
+        done = o[2]
+        truncated = o[3]
 
         reward = 0  # reward done at monitor_reward level
         #reward = super().monitor_reward(done, truncated) # all the reward comes from the RM
@@ -42,9 +62,14 @@ class GridEnv(gym.Env):
         return obs, reward, done, truncated, info
 
     def reset(self):
-        self.env.reset()
         self.step_num = 0
-        return self.env.get_features()
+        o, _ = self.env.reset()
+        obs_position = self.obs_from_tuple(o)
+        obs = {
+            'position': obs_position,
+            'monitor': self.monitor_state
+        }
+        return obs
 
     def show(self):
         self.env.show()
@@ -88,6 +113,17 @@ class GridEnv(gym.Env):
         
     def _render_agent(self):
         self.env.show()
+    
+    def obs_from_tuple(self,observation_tuple):
+        obs = list(observation_tuple[:2])
+        proposition_one_hot = [0]*len(self.propositions)
+        index_of_proposition = self.one_hot_propositions[observation_tuple[2]]
+        proposition_one_hot[index_of_proposition] = 1
+        obs = obs + proposition_one_hot
+        return tuple(obs)
+    
+    def get_monitor_state(self, state):
+        self.monitor_state = state
 
 class GridEnv_RNN(GridEnv):
     def __init__(self, env, config_path, observation_space_size = 2, render_mode = None, max_monitor_length=12):   #  observation_space_siz Default is 2 as it's (x,y). Else it adds the number of monitor states as well
@@ -145,49 +181,4 @@ class GridEnv_RNN(GridEnv):
             'position': position,
             'monitor': monitor
         }
-
-
-class OfficeRMLEnv(GridEnv):
-    metadata = {'render_modes': [22]}
-    def __init__(self, render_mode = None):
-        self.env = OfficeWorld()
-        self.forbidden_transitions = self.env.forbidden_transitions
-        config_path = './examples/office_new.yaml'
-        super().__init__(self.env, config_path, render_mode)
-
-    def get_monitor_state(self, state):
-        self.env.get_monitor_state(state)
-
-class OfficeRMLEnv_Delivery(GridEnv):
-    metadata = {'render_modes': [22]}
-    def __init__(self, render_mode = None):
-        self.env = OfficeWorld_Delivery()
-        self.forbidden_transitions = self.env.forbidden_transitions
-        config_path = './examples/office_new.yaml'
-        super().__init__(self.env, config_path, render_mode)
-
-    def get_monitor_state(self, state):
-        self.env.get_monitor_state(state)
-
-class OfficeRMLEnv_Delivery_PPO(GridEnv):
-    metadata = {'render_modes': [22]}
-    def __init__(self, render_mode = None):
-        self.env = OfficeWorld_Delivery()
-        self.forbidden_transitions = self.env.forbidden_transitions
-        config_path = './examples/office_new.yaml'
-        super().__init__(self.env, config_path, observation_space_size=27, render_mode = render_mode)
-
-    def get_monitor_state(self, state):
-        self.env.get_monitor_state(state)
-
-class RML_LetterEnv(GridEnv):
-    metadata = {'render_modes': [22]}
-    def __init__(self, render_mode = None):
-        self.env = LetterEnv()
-        self.forbidden_transitions = self.env.forbidden_transitions
-        config_path = './examples/letter_env.yaml'
-        super().__init__(self.env, config_path, render_mode)
-
-    def get_monitor_state(self, state):
-        self.env.get_monitor_state(state)
-
+    

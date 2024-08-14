@@ -51,7 +51,6 @@ class CounterMachineAgent:
         next_u, next_counters, reward = self.machine.transition(
             props, self.u, self.counters
         )
-
         if next_u in self.machine.F:
             self.Q[machine_state][action] += self.learning_rate * (
                 reward - self.Q[machine_state][action]
@@ -97,7 +96,6 @@ class CounterMachineCRMAgent(CounterMachineAgent):
         props = next_obs[3]
         o = obs[:2]
         next_o = next_obs[:2]
-
         # Store observed counter states
         self.observed_counters[self.u].add(self.counters)
 
@@ -123,3 +121,4 @@ class CounterMachineCRMAgent(CounterMachineAgent):
         next_u, next_counters, _ = self.machine.transition(props, self.u, self.counters)
         self.u = next_u
         self.counters = next_counters
+

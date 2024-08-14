@@ -128,7 +128,6 @@ class LetterEnv(Env):
             self.agent_position[1],
             obs_prop,
         )
-
         # Determine if episode is terminated due to max number of steps
         if self.spec is not None and self.spec.max_episode_steps == self.n_steps:
             terminated = True

@@ -1,0 +1,16 @@
+coffee_pick_up matches {f : t} with t = 1.0;
+mail_pick_up matches {e : t} with t = 1.0;
+out_of_mail matches {o : t} with t = 1.0;
+drop_off matches {g : t} with t = 1.0;
+any_n matches {nn : t} with t = 1.0;
+not_efgon not matches mail_pick_up | coffee_pick_up | drop_off | out_of_mail | any_n;
+
+Main = not_efgon* Mail<1>;
+
+Mail<n> = mail_pick_up not_efgon* (Mail<n+1> \/ (out_of_mail Coffee<n,n>));
+
+Coffee<s,m> = if (s > 0) not_efgon* coffee_pick_up Coffee<s-1,m> else Drop<m>;
+
+Drop<s> = if (s > 0) not_efgon* drop_off Drop<s-1> else all;
+
+

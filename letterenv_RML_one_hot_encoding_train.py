@@ -9,7 +9,8 @@ from gymnasium.envs.registration import load_env_creator
 from gymnasium.envs.registration import register
 from rml.rmlgym import RMLGym_One_Hot
 from tqdm import tqdm
-from utils.letterenv_functions import learning_episode, evaluation_episode_encoding
+from utils.learning_functions import learning_episode_letter, evaluation_episode_encoding
+from utils.train_rml import rml_training
 import matplotlib.pyplot as plt
 import pickle
 from utils.encoding_functions import generate_events_and_index_one_hot, create_encoding_one_hot
@@ -54,75 +55,26 @@ states_for_encoding = {0: '@(eps*(star(not_abcd:eps)*app(,[0])),[=gen([n],(a_mat
           36: '@(eps*(star(not_abcd:eps)*((d_match:eps)*app(gen([n],),[5-1]))),[=guarded(var(n)>0,star(not_abcd:eps)*((d_match:eps)*app(gen([n],),[var(n)-1])),1)])', 
           37: '@(app(gen([n],),[5-1]),[=guarded(var(n)>0,star(not_abcd:eps)*((d_match:eps)*app(gen([n],),[var(n)-1])),1)])'}
 
-unique_events, event_index = generate_events_and_index_one_hot(states_for_encoding)
-initial_encoding = create_encoding_one_hot(states_for_encoding[0],event_index)
 
-
-results_df_input = pd.DataFrame(columns=['n value', 'episodes', 'steps', 'iteration'])
-
-
-def initialise_parameters():
-    epsilon = 0.35
-    alpha = 0.5
-    gamma = 0.9
-    correct_reward = 110
-    return epsilon, alpha, gamma, correct_reward
-
-def reset_environment():
-    config_path = './examples/letter_env.yaml'
-    epsilon, alpha, gamma, correct_reward = initialise_parameters()
-    env = RMLGym_One_Hot(event_index, initial_encoding, config_path)
-    q_table = {}
-    succesful_policy = False
-    num_episodes = 0
-    total_steps = 0
-    results_df = pd.DataFrame(columns=['n value', 'episodes', 'steps'])
-    actions = [Actions.RIGHT.value, Actions.LEFT.value, Actions.UP.value, Actions.DOWN.value]
-
-    return epsilon, alpha, gamma, correct_reward, env, q_table, succesful_policy, num_episodes, total_steps, results_df, actions 
-
-
-def test_loop(event_index, initial_encoding,n):
-    epsilon, alpha, gamma, correct_reward, env, q_table, succesful_policy, num_episodes, total_steps, results_df, actions = reset_environment()
-
-    while succesful_policy == False:
-        num_episodes += 1
-        q_table, state, epsilon, total_steps = learning_episode(env, q_table, actions, alpha, gamma, epsilon, total_steps)
-        succesful_policy, results_df = evaluation_episode_encoding(env, q_table, actions, 
-                                                                        n, num_episodes, total_steps, results_df, correct_reward)
-    return results_df
-
-def get_test_statistics(event_index, initial_encoding, final_results_df,n):
-    if final_results_df.empty:
-        iteration = 0
-    else:
-        iteration = final_results_df['iteration'].iloc[-1]
-    for i in tqdm(range(40)):
-        j = 0
-        iteration += 1
-        while j < n:
-            j += 1
-            iteration_results_df = test_loop(event_index, initial_encoding,j)
-            iteration_results_df['iteration'] = iteration
-            final_results_df = pd.concat([final_results_df, iteration_results_df])
-
-    return final_results_df
-
-
+config_path = './examples/letter_env.yaml'
 
 register(
     id='letter-env',
-    entry_point='envs.new_letterenv_wrappers:RML_LetterEnv_5',
+    entry_point='envs.letterenv_wrappers:RML_LetterEnv_5',
     max_episode_steps=200
 )
 
-the_test_results_df = get_test_statistics(event_index,initial_encoding, results_df_input,n=5)
+actions = [Actions.RIGHT.value, Actions.LEFT.value, Actions.UP.value, Actions.DOWN.value]
 
 
+training_class = rml_training(learning_episode_letter, RMLGym_One_Hot, states_for_encoding, actions, config_path, n=5)
 
-print(the_test_results_df)
+
+results = training_class.get_test_statistics()
+
+print(results)
 
 
 with open('results/results_LetterEnv_RML_one_hot_encoding.pkl', 'wb') as f:
-    pickle.dump(the_test_results_df, f)
+    pickle.dump(results, f)
 

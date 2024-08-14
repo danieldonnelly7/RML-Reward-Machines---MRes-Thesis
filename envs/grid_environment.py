@@ -15,7 +15,6 @@ class GridEnv(gym.Env):
         N,M      = self.env.n_rows, self.env.n_cols
         L = len(self.propositions)
         self.action_space = spaces.Discrete(4) # up, right, down, left
-
         self.position_space = spaces.Box(low=0, high=max([N, M]), shape=(L,), dtype=np.uint8)  # (x, y) + objects
         self.monitor_space = spaces.Box(low=-np.inf, high=np.inf, shape=(monitor_states,), dtype=np.float32)  # Monitor state of size 20
 

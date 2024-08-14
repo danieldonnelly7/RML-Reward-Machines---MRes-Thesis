@@ -1,7 +1,7 @@
 env_name: Office-v0
 host: 127.0.0.1
 port: 8081
-max_episode_steps : 400
+max_episode_steps : 500
 variables:
     - name: x
       type: float
@@ -39,9 +39,22 @@ variables:
       type: float
       location: obs
       identifier: 8
+    - name: nn
+      type: float
+      location: obs
+      identifier: 9
+    - name: o
+      type: float
+      location: obs
+      identifier: 10
+    - name: _
+      type: float
+      location: obs
+      identifier: 11
+
 reward:
       name: task
       true: 100
       currently_true: 100
       currently_false: 0
-      false: -10
+      false: -30

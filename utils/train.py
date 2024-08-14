@@ -44,6 +44,26 @@ def train_till_conv_repeat(
 
     return np.mean(sample_counts)
 
+def train_till_conv_repeat_office(
+    agent,
+    env,
+    max_samples,
+    n_repeats=1,
+):
+    sample_counts = []
+
+    for _ in range(n_repeats):
+        agent.reset_training()
+        sample_count = train_conv_3(
+            agent,
+            env,
+            max_samples // 100,
+        )
+        sample_counts.append(sample_count)
+        # print(sample_count)
+
+    return np.mean(sample_counts)
+
 
 def train(
     agent,
@@ -98,7 +118,7 @@ def train_till_conv(
         obs, _ = env.reset()
         obs = env.observation(obs)
 
-        for t in range(100):
+        for t in range(200):
             action = agent.get_action(obs)
             next_obs, reward, terminated, _, _ = env.step(action)
             next_obs = env.observation(next_obs)
@@ -126,7 +146,6 @@ def train_conv_2(
     # pbar = tqdm(range(n_episodes))
     rewards = []
     sample_count = 0
-
     for episode in range(n_episodes):
         agent.reset()
         obs, _ = env.reset()
@@ -136,7 +155,6 @@ def train_conv_2(
             action = agent.get_action(obs)
             next_obs, reward, terminated, _, _ = env.step(action)
             next_obs = env.observation(next_obs)
-
             agent.update(obs, action, next_obs, reward, terminated)
             obs = next_obs
 
@@ -155,4 +173,38 @@ def train_conv_2(
             # )
             if ave == 1:
                 break
+    return sample_count
+
+def train_conv_3(
+    agent,
+    env,
+    n_episodes,
+):
+    # pbar = tqdm(range(n_episodes))
+    rewards = []
+    sample_count = 0
+    for episode in range(n_episodes):
+        agent.reset()
+        obs, _ = env.reset()
+        obs = env.observation(obs)
+        episode_reward = 0
+
+        for t in range(500):
+            action = agent.get_action(obs)
+            next_obs, reward, terminated, _, _ = env.step(action)
+            next_obs = env.observation(next_obs)
+            agent.update(obs, action, next_obs, reward, terminated)
+            obs = next_obs
+
+            sample_count += 1
+            episode_reward += reward
+
+            if agent.terminated() or terminated:
+                break
+
+        agent.decay_epsilon()
+        rewards.append(reward)
+        if episode_reward > 0:   # Succcess condition. Only get a positive reward from environment if whole episode is a success
+            break
+
     return sample_count

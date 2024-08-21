@@ -484,6 +484,9 @@ class RMLGym_Simple(RMLGym):
             #print(self.data)
             o['monitor'] = self.env.monitor_state
 
+            if self.monitor_state_unencoded == '1' or self.monitor_state_unencoded == 'false_verdict':
+                done = True
+
             if done or truncated:
                 self.reset()
             return o, reward, done, truncated ,info
@@ -504,7 +507,8 @@ class RMLGym_Simple(RMLGym):
         self.step_num = 0
         self.previous_monitor_state = 0
         self.env.get_monitor_state(self.previous_monitor_state)   # Updating the monitor_state variable in the environment representation
-        
+        self.reset_monitor()
+
         for key in self.data.keys():
             self.data[key] = []
         obs = self.env.reset(**kwargs)    # If encountering the office world error making this 1, self.env.reset(**kwargs) works
@@ -526,12 +530,11 @@ class RMLGym_Simple(RMLGym):
         # Convert the JSON string to a Python dictionary
         response = json.loads(response)
         ws.close()
-
+        self.monitor_state_unencoded = response['monitor_state']
         # Check if the response is valid
         reward = self.rewards[response['verdict']]
-        monitor_state_encoding = self.transform_monitor_state(response['monitor_state'])
+        monitor_state_encoding = self.transform_monitor_state(self.monitor_state_unencoded)
         self.env.get_monitor_state(monitor_state_encoding)   # Updating the monitor_state variable in the environment representation
-
         current_monitor_state = copy.deepcopy(monitor_state_encoding)
         if current_monitor_state != self.previous_monitor_state:   # Providing additional reward for monitor state transitions
             reward += 10

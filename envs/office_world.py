@@ -163,7 +163,6 @@ class OfficeWorld:
                 terminated = True
                 truncated = False
                 reward = 1
-                print('Task Success')
             else:
                 terminated = False
                 truncated = False

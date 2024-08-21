@@ -12,7 +12,7 @@ plt.rcParams['axes.titlesize'] = 20
 plt.rcParams['axes.labelsize'] = 16
 plt.rcParams['xtick.labelsize'] = 12
 plt.rcParams['ytick.labelsize'] = 12
-plt.rcParams['legend.fontsize'] = 12
+plt.rcParams['legend.fontsize'] = 8
 
 # Load the results from the pickle files
 with open('results/results_LetterEnv_RML_num_encoding.pkl', 'rb') as f:
@@ -25,11 +25,11 @@ with open('results/results_LetterEnv_RML_simple_encoding.pkl', 'rb') as f:
     simple_results = pickle.load(f)
 
 with open('results/convergence_results_CF-0.pkl', 'rb') as f:
-    CRA_MDP_results = pickle.load(f)
+    CRA_RM_results = pickle.load(f)
 
 # Extracting results from CRA_MDP_results
-MDP_results = CRA_MDP_results['MDP Q-Learning']
-CRA_results = CRA_MDP_results['CQL']
+RM_results = CRA_RM_results['CRM+RS']
+CRA_results = CRA_RM_results['CQL']
 
 # Calculate means and standard deviations for num, one hot and simple
 means_num = {n: np.mean(num_encoding_results.loc[num_encoding_results['n value'] == n]['steps']) for n in num_encoding_results['n value']}
@@ -41,8 +41,9 @@ std_devs_one_hot = {n: np.std(one_hot_results.loc[one_hot_results['n value'] == 
 means_simple = {n: np.mean(simple_results.loc[simple_results['n value'] == n]['steps']) for n in simple_results['n value']}
 std_devs_simple = {n: np.std(simple_results.loc[simple_results['n value'] == n]['steps']) for n in simple_results['n value']}
 
+means_cra = {n: np.mean(CRA_results[n]['result']) for n in CRA_results}
+std_devs_cra = {n: np.std(CRA_results[n]['result']) for n in CRA_results}# Prepare data for plotting
 
-# Prepare data for plotting
 n_values = list(means_one_hot.keys())
 
 # Plotting Steps to Success for one hot and vector encoding
@@ -61,7 +62,7 @@ plt.ylabel('Steps required to obtain a solution')
 plt.xticks(np.arange(min(n_values), max(n_values) + 1, 1))
 plt.legend(loc='upper left')
 plt.grid(True)
-plt.title('Comparison of Steps to Success for Different Encodings')
+#plt.title('Comparison of Steps to Success for Different Encodings')
 plt.show()
 
 
@@ -71,10 +72,9 @@ plt.plot(n_values, list(means_num.values()), marker='o', label='Num Encoding Mea
 plt.plot(n_values, list(means_one_hot.values()), marker='o', label='One-Hot Encoding Mean Steps', color='blue')
 plt.plot(n_values, list(means_simple.values()), marker='o', label='Simple Encoding Mean Steps', color='grey')
 
-
 # Plot MDP and CRA results
-plt.plot(n_values, MDP_results, marker='o', label='MDP Q-Learning', color='green')
-plt.plot(n_values, CRA_results, marker='o', label='CQL', color='red')
+plt.plot(n_values, RM_results, marker='o', label='CRM+RS', color='green')
+plt.plot(n_values, list(means_cra.values()), marker='o', label='CQL', color='red')
 
 plt.xlabel('N value')
 plt.ylabel('Steps required to obtain a solution (log scale)')
@@ -82,5 +82,5 @@ plt.yscale('log')
 plt.xticks(np.arange(min(n_values), max(n_values) + 1, 1))
 plt.legend(loc='upper left')
 plt.grid(True)
-plt.title('Comparison of Steps to Success for Different Encodings and MDP/CRA')
+#plt.title('Comparison of Steps to Success for Different Encodings and MDP/CRA')
 plt.show()

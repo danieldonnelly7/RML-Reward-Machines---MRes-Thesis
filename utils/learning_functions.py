@@ -5,7 +5,7 @@ from envs.letterenv import LetterEnv
 import pandas as pd
 import numpy as np
 
-def learning_episode_office(env, q_table, actions, alpha, gamma, epsilon, total_steps,n, reward_if_correct=[110,112]):
+def learning_episode_office(rewards, env, q_table, actions, alpha, gamma, epsilon, total_steps,n, reward_if_correct=[110,112]):
     succesful_policy = False
     env.env.set_n(n)
     state , _ = env.reset()
@@ -51,13 +51,17 @@ def learning_episode_office(env, q_table, actions, alpha, gamma, epsilon, total_
         total_reward += reward
 
     # Decay epsilon
-    epsilon *= 0.999999
-    if reward in reward_if_correct:
-        succesful_policy = True
-    
-    return succesful_policy, q_table, state, epsilon, total_steps
+    epsilon *= 0.9999
+        
+    rewards.append(reward)    # Only checking the last reward as it contains information on whether the episode is a success
 
-def learning_episode_letter(env, q_table, actions, alpha, gamma, epsilon, total_steps,n,reward_if_correct=[110,112]):
+    if rewards.count(110) > 0:
+        # Succesful policy true when deterministic policy is succesful, false otherwise
+        succesful_policy = eval_office_world(env, q_table, actions, n)
+    
+    return rewards, succesful_policy, q_table, state, epsilon, total_steps
+
+def learning_episode_letter(rewards, env, q_table, actions, alpha, gamma, epsilon, total_steps,n,reward_if_correct=[110,112]):
     succesful_policy = False
     env.env.set_n(n)
     state , _ = env.reset()
@@ -102,11 +106,59 @@ def learning_episode_letter(env, q_table, actions, alpha, gamma, epsilon, total_
         total_reward += reward
 
     # Decay epsilon
-    epsilon *= 0.999999
-    if reward in reward_if_correct:
-        succesful_policy = True
+    epsilon *= 0.99
+    rewards.append(reward)    # Only checking the last reward as it contains information on whether the episode is a success
+    if len(rewards) >= 20:
+        average_reward = sum(rewards[-20:])/20
+        
+        if average_reward in reward_if_correct:
+            succesful_policy = True
     
-    return succesful_policy, q_table, state, epsilon, total_steps
+    return rewards, succesful_policy, q_table, state, epsilon, total_steps
+
+def eval_office_world(env, q_table, actions, n):
+    env.env.set_n(n)
+    state, _ = env.reset()
+    max_steps = 500
+    steps = 0
+
+    if isinstance(state['monitor'], int):
+        state_tuple = (state['position'], (state['monitor']))
+    else:
+        state_tuple = (state['position'], tuple(state['monitor']))
+
+    done = False
+    total_reward = 0
+
+    while not done and steps < max_steps:
+        if state_tuple not in q_table:
+            return False
+
+        valid_actions = [a for a in actions if (state_tuple[0], state_tuple[1], a) not in env.env.env.env.env.env.forbidden_transitions]
+        if not valid_actions:   # Failure if no available action
+            return False
+        
+        # Select the best action 
+        max_value = max(q_table[state_tuple].values())
+        best_actions = [a for a in valid_actions if q_table[state_tuple][a] == max_value]
+        action = random.choice(best_actions)
+
+        # Take action
+        next_state, reward, done, _, __ = env.step(action)
+        
+        if isinstance(next_state['monitor'], int):
+            next_state_tuple = (next_state['position'], (next_state['monitor']))
+        else:
+            next_state_tuple = (next_state['position'], tuple(next_state['monitor']))
+
+        state_tuple = next_state_tuple
+        total_reward += reward
+        steps += 1
+ 
+    # Check if the total_reward indicates a successful episode
+    return reward in [110, 112]
+
+
 
 def evaluation_episode_encoding(env, q_table, actions, 
                         n, total_episodes, total_steps, result_table, reward_if_correct, max_steps = 500):

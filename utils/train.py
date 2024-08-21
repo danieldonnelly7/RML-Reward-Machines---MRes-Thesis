@@ -2,6 +2,8 @@ import numpy as np
 
 from .eval import eval_agent
 
+import time 
+import copy
 
 def train_repeat(
     agent,
@@ -166,8 +168,8 @@ def train_conv_2(
         agent.decay_epsilon()
         rewards.append(reward)
 
-        if episode % 100 == 0:
-            ave = np.mean(rewards[-100:])
+        if episode >= 20:
+            ave = np.mean(rewards[-20:])
             # pbar.set_description(
             #     f"Episode {episode} | Reward {np.mean(rewards[-100:]):.2f}"
             # )
@@ -187,7 +189,6 @@ def train_conv_3(
         agent.reset()
         obs, _ = env.reset()
         obs = env.observation(obs)
-        episode_reward = 0
 
         for t in range(500):
             action = agent.get_action(obs)
@@ -196,15 +197,46 @@ def train_conv_3(
             agent.update(obs, action, next_obs, reward, terminated)
             obs = next_obs
 
+
             sample_count += 1
-            episode_reward += reward
+
 
             if agent.terminated() or terminated:
                 break
 
         agent.decay_epsilon()
         rewards.append(reward)
-        if episode_reward > 0:   # Succcess condition. Only get a positive reward from environment if whole episode is a success
-            break
+
+        if rewards.count(1) > 0:
+            # Succesful policy true when deterministic policy is succesful, false otherwise
+            succesful_policy = eval_office_world(env, agent)
+
+            if succesful_policy:
+                break
 
     return sample_count
+
+def eval_office_world(env,agent):
+    agent.reset()
+    obs, _ = env.reset()
+    obs = env.observation(obs)
+    success = False
+    steps = 0
+    for t in range(500):
+        action, flag = agent.get_evaluation_action(obs)
+        if flag:   # Breaks if the agent has 0 in q table for all possible next actions
+            if steps == 0:
+                reward = 0
+            break
+
+        next_obs, reward, terminated, _, _ = env.step(action)
+        next_obs = env.observation(next_obs)
+        agent.evaluation_update(next_obs)
+        obs = next_obs
+        
+        steps += 1
+        if agent.terminated() or terminated:
+            break
+    if reward == 1:
+        success = True
+    return success

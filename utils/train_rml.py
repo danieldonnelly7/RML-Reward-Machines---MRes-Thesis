@@ -15,7 +15,7 @@ from utils.encoding_functions import generate_events_and_index, create_encoding
 import copy
 
 
-class rml_training():
+class rml_training(): 
     def __init__(self, learn_func, rmlgym, states_for_encoding, actions, config_path, n, epsilon=0.35, alpha=0.5, gamma=0.9, correct_reward=110):
         
         self.unique_events, self.event_index = generate_events_and_index(states_for_encoding)
@@ -47,10 +47,11 @@ class rml_training():
         num_episodes = 0
         total_steps = 0
         results_df = pd.DataFrame(columns=['n value', 'episodes', 'steps'])
+        rewards = []
 
         while succesful_policy == False:
             num_episodes += 1
-            succesful_policy, q_table, state, epsilon, total_steps = self.learning_function(env, q_table, self.actions, alpha, gamma, epsilon, total_steps,n)
+            rewards, succesful_policy, q_table, state, epsilon, total_steps = self.learning_function(rewards, env, q_table, self.actions, alpha, gamma, epsilon, total_steps,n)
 
             if succesful_policy:
                 new_row = pd.DataFrame([{'n value': n, 'episodes': num_episodes, 'steps': total_steps}])
@@ -63,7 +64,7 @@ class rml_training():
             iteration = 0
         else:
             iteration = self.results_df['iteration'].iloc[-1]
-        for i in tqdm(range(40)):
+        for i in tqdm(range(20)):
             j = 0
             iteration += 1
             while j < self.n:
@@ -96,10 +97,11 @@ class rml_training_simple(rml_training):
         num_episodes = 0
         total_steps = 0
         results_df = pd.DataFrame(columns=['n value', 'episodes', 'steps'])
+        rewards = []
 
         while succesful_policy == False:
             num_episodes += 1
-            succesful_policy, q_table, state, epsilon, total_steps = self.learning_function(env, q_table, self.actions, alpha, gamma, epsilon, total_steps,n)
+            rewards, succesful_policy, q_table, state, epsilon, total_steps = self.learning_function(rewards, env, q_table, self.actions, alpha, gamma, epsilon, total_steps,n)
 
             if succesful_policy:
                 new_row = pd.DataFrame([{'n value': n, 'episodes': num_episodes, 'steps': total_steps}])

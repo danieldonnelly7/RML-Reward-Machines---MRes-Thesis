@@ -1,6 +1,6 @@
 from collections import defaultdict
 import numpy as np
-
+import random
 
 class CounterMachineAgent:
     def __init__(
@@ -122,6 +122,7 @@ class CounterMachineCRMAgent(CounterMachineAgent):
         props = next_obs[3]
         o = obs[:2]
         next_o = next_obs[:2]
+
         # Store observed counter states
         self.observed_counters[self.u].add(self.counters)
 
@@ -129,7 +130,6 @@ class CounterMachineCRMAgent(CounterMachineAgent):
             for c_j in self.observed_counters[u_i]:
                 counterfactual_state = o + (u_i,) + (c_j,)
                 u_k, c_k, r_k = self.machine.transition(props, u_i, c_j)
-
                 if u_k in self.machine.F:
                     self.Q[counterfactual_state][action] += self.learning_rate * (
                         r_k - self.Q[counterfactual_state][action]
@@ -148,3 +148,27 @@ class CounterMachineCRMAgent(CounterMachineAgent):
         self.u = next_u
         self.counters = next_counters
 
+class CounterMachineCRMAgent_NewAction(CounterMachineCRMAgent):
+    def get_action(self, obs, env,Actions):
+        # Remove propositions
+        o = obs[:2]
+        machine_state = o + (self.u,) + (self.counters,)
+
+        valid_actions_list = [a for a in Actions if (o[0], o[1], a) not in env.forbidden_transitions]
+
+        valid_actions = []
+        for i in range(4):
+            if list(Actions)[i] in valid_actions_list:
+                valid_actions.append(i)
+
+        if np.random.random() < self.epsilon or np.all(self.Q[machine_state] == 0):
+            return random.choice(valid_actions)  #self.action_space.sample()
+        else:
+            best_action = np.argmax(self.Q[machine_state])
+
+            # If the best action is not valid, select the next best valid action
+            if best_action not in valid_actions:
+                valid_action_values = [(a, self.Q[machine_state][a]) for a in valid_actions]
+                best_action = max(valid_action_values, key=lambda x: x[1])[0]
+            
+            return best_action

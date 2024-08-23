@@ -145,7 +145,7 @@ def eval_office_world(env, q_table, actions, n):
 
         # Take action
         next_state, reward, done, _, __ = env.step(action)
-        
+
         if isinstance(next_state['monitor'], int):
             next_state_tuple = (next_state['position'], (next_state['monitor']))
         else:

@@ -1,0 +1,16 @@
+env,n_value,no_mon_states
+RMLGym,1,6
+RMLGym,2,8
+RMLGym,3,10
+RMLGym,4,12
+RMLGym,5,14
+RMLGym_One_Hot,1,7
+RMLGym_One_Hot,2,7
+RMLGym_One_Hot,3,7
+RMLGym_One_Hot,4,7
+RMLGym_One_Hot,5,7
+RMLGym_Simple,1,7
+RMLGym_Simple,2,11
+RMLGym_Simple,3,15
+RMLGym_Simple,4,19
+RMLGym_Simple,5,23

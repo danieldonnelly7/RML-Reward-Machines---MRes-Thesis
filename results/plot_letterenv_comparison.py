@@ -27,6 +27,9 @@ with open('results/results_LetterEnv_RML_simple_encoding.pkl', 'rb') as f:
 with open('results/convergence_results_CF-0.pkl', 'rb') as f:
     CRA_RM_results = pickle.load(f)
 
+with open('results/convergence_results_CF_CQL_improved.pkl', 'rb') as f:
+    CRA_IR = pickle.load(f)
+
 # Extracting results from CRA_MDP_results
 RM_results = CRA_RM_results['CRM+RS']
 CRA_results = CRA_RM_results['CQL']
@@ -41,8 +44,8 @@ std_devs_one_hot = {n: np.std(one_hot_results.loc[one_hot_results['n value'] == 
 means_simple = {n: np.mean(simple_results.loc[simple_results['n value'] == n]['steps']) for n in simple_results['n value']}
 std_devs_simple = {n: np.std(simple_results.loc[simple_results['n value'] == n]['steps']) for n in simple_results['n value']}
 
-means_cra = {n: np.mean(CRA_results[n]['result']) for n in CRA_results}
-std_devs_cra = {n: np.std(CRA_results[n]['result']) for n in CRA_results}# Prepare data for plotting
+means_cra_IR = {n: np.mean(CRA_IR[n]) for n in CRA_IR}
+std_devs_cra_IR = {n: np.std(CRA_IR[n]) for n in CRA_IR}# Prepare data for plotting
 
 n_values = list(means_one_hot.keys())
 
@@ -56,6 +59,9 @@ plt.fill_between(n_values, np.array(list(means_one_hot.values())) - np.array(lis
 
 plt.plot(n_values, list(means_simple.values()), marker='o', label='Simple Encoding Mean Steps', color='green')
 plt.fill_between(n_values, np.array(list(means_simple.values())) - np.array(list(std_devs_simple.values())), np.array(list(means_simple.values())) + np.array(list(std_devs_simple.values())), color='green', alpha=0.1, label='Simple Encoding ±1 Standard Deviation')
+
+plt.plot(n_values, list(means_cra_IR.values()), marker='o', label='CQL+IR Mean Steps', color='yellow')
+plt.fill_between(n_values, np.array(list(means_cra_IR.values())) - np.array(list(std_devs_cra_IR.values())), np.array(list(means_cra_IR.values())) + np.array(list(std_devs_cra_IR.values())), color='yellow', alpha=0.1, label='CQL+IR ±1 Standard Deviation')
 
 plt.xlabel('N value')
 plt.ylabel('Steps required to obtain a solution')
@@ -74,7 +80,8 @@ plt.plot(n_values, list(means_simple.values()), marker='o', label='Simple Encodi
 
 # Plot MDP and CRA results
 plt.plot(n_values, RM_results, marker='o', label='CRM+RS', color='green')
-plt.plot(n_values, list(means_cra.values()), marker='o', label='CQL', color='red')
+plt.plot(n_values, CRA_results, marker='o', label='CQL', color='red')
+plt.plot(n_values, list(means_cra_IR.values()), marker='o', label='CQL+IR Mean Steps', color='yellow')
 
 plt.xlabel('N value')
 plt.ylabel('Steps required to obtain a solution (log scale)')

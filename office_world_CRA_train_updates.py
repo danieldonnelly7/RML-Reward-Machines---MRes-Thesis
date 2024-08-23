@@ -4,10 +4,11 @@ import sys
 from collections import defaultdict
 import matplotlib.pyplot as plt
 import pandas as pd
+from envs.office_world import Actions
 
 import numpy as np
 from agents.counter_machine.agent import (
-    CounterMachineCRMAgent,
+    CounterMachineCRMAgent_NewAction,
 )
 
 from agents.counter_machine.office_world.config import OfficeWorldCounterMachine
@@ -15,7 +16,7 @@ from agents.counter_machine.office_world.config import OfficeWorldCounterMachine
 from environments.office_world_CRA_wrappers import (
     _create_office_world_env, create_office_world_labelled
 )
-from environments.context_free import (
+from environments.office_world_CRA_wrappers import (
     labelled_action_space,
 )
 from utils.train import train_till_conv_repeat_office
@@ -29,10 +30,10 @@ N_EPISODES = [
 
 
 agent_kwargs = {
-    "initial_epsilon": 0.3, # 0.35
+    "initial_epsilon": 0.3, 
     "final_epsilon": 0.01,
-    "epsilon_decay": 1/1000000, #1.0 / 1000000000,
-    "learning_rate": 0.01,
+    "epsilon_decay": 1/1000000, 
+    "learning_rate": 0.5,  
     "discount_factor": 0.1,
 }
 train_conv_kwargs = {
@@ -41,7 +42,7 @@ train_conv_kwargs = {
 
 
 def create_counter_crm_agent():
-    return CounterMachineCRMAgent(
+    return CounterMachineCRMAgent_NewAction(
         machine=OfficeWorldCounterMachine(),
         action_space=labelled_action_space,
         **agent_kwargs,
@@ -75,7 +76,7 @@ if __name__ == "__main__":
 
     N = 3
     number_of_repeats = 20
-    results_file = "results/office_world_success_results_CF.pkl"
+    results_file = "results/office_world_success_results_CQL_new_actions.pkl"
 
     # Load progress if it exists
     convergence_results, last_n, last_iter = load_progress(results_file)
@@ -91,7 +92,7 @@ if __name__ == "__main__":
 
             train_conv_kwargs["max_samples"] = 500 * N_EPISODES[n - 1]
 
-            conv_results = train_till_conv_repeat_office(agent, env, **train_conv_kwargs)
+            conv_results = train_till_conv_repeat_office(Actions, agent, env, **train_conv_kwargs)
             result_df = pd.DataFrame({'n' : [n], 'no of samples' : [conv_results], 'iteration' : [iter]})
             print('result')
             print(result_df)

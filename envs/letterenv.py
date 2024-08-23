@@ -62,6 +62,7 @@ class LetterEnv(Env):
             ),
         )
         self.reward_range = (0, 1)
+        self.create_forbidden_transitions()
 
     def reset(
         self,
@@ -202,3 +203,15 @@ class LetterEnv(Env):
             self.agent_position[1],
             obs_props,
         )
+    
+    def create_forbidden_transitions(self):
+        self.forbidden_transitions = set()
+        # Add forbidden transitions for the bottom and top walls
+        for x in range(self.n_cols):
+            self.forbidden_transitions.add((0, x, Actions.UP))  # Bottom wall
+            self.forbidden_transitions.add((self.n_rows-1, x, Actions.DOWN))  # Top wall
+
+        # Add forbidden transitions for the left and right walls
+        for y in range(self.n_rows):
+            self.forbidden_transitions.add((y, 0, Actions.LEFT))  # Left wall
+            self.forbidden_transitions.add((y, self.n_cols-1, Actions.RIGHT))  # Right wall

@@ -38,4 +38,3 @@ def create_office_world_labelled(N=1):
 
 
 labelled_action_space = create_office_world_labelled().action_space
-

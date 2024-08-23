@@ -7,7 +7,7 @@ from enum import Enum
 from gymnasium.envs.registration import registry
 from gymnasium.envs.registration import load_env_creator
 from gymnasium.envs.registration import register
-from rml.rmlgym import RMLGym
+from rml.rmlgym import RMLGym, RMLGym_One_Hot, RMLGym_Simple
 from tqdm import tqdm
 from utils.learning_functions import learning_episode_letter, evaluation_episode_encoding
 from utils.train_rml import rml_training
@@ -55,6 +55,70 @@ states_for_encoding = {0: '@(eps*(star(not_abcd:eps)*app(,[0])),[=gen([n],(a_mat
           36: '@(eps*(star(not_abcd:eps)*((d_match:eps)*app(gen([n],),[5-1]))),[=guarded(var(n)>0,star(not_abcd:eps)*((d_match:eps)*app(gen([n],),[var(n)-1])),1)])', 
           37: '@(app(gen([n],),[5-1]),[=guarded(var(n)>0,star(not_abcd:eps)*((d_match:eps)*app(gen([n],),[var(n)-1])),1)])'}
 
+def learning_loop(n, env, alpha=0.5, gamma=0.9, epsilon=0.35):
+    
+    succesful_policy = False
+    actions = [Actions.RIGHT.value, Actions.LEFT.value, Actions.UP.value, Actions.DOWN.value]
+    q_table = {}
+    observed_monitor_states = []
+
+
+    while not succesful_policy:
+        steps = 0
+        env.env.set_n(n)
+        state , _ = env.reset()
+        done = False
+
+
+        if isinstance(state['monitor'], int):
+            state_tuple = (state['position'], (state['monitor']))
+        else:
+            state_tuple = (state['position'], tuple(state['monitor']))
+
+        while not done and steps < 200:
+            if state_tuple[1] not in observed_monitor_states:
+                observed_monitor_states.append(state_tuple[1])
+            if state_tuple not in q_table:         # Add state to the q table
+                q_table[state_tuple] = {action: 0 for action in actions}
+            # Epsilon-greedy action selection
+            if random.random() < epsilon:
+                action = random.choice(actions)
+            else:
+                max_value = max(q_table[state_tuple].values())
+                # Find all actions that have this maximum Q-value among valid actions
+                best_actions = [a for a in actions if q_table[state_tuple][a] == max_value]
+                # Randomly choose among the best actions
+                action = random.choice(best_actions)
+            # Take action
+            next_state, reward, done, _, __ = env.step(action)#
+            if isinstance(next_state['monitor'], int):
+                next_state_tuple = (next_state['position'], (next_state['monitor']))
+            else:
+                next_state_tuple = (next_state['position'], tuple(next_state['monitor']))
+
+            if next_state_tuple not in q_table:    # Add next state to the q table
+                q_table[next_state_tuple] = {action: 0 for action in actions}
+                reward += 2
+
+            # Q-learning update
+            old_value = q_table[state_tuple][action]
+            next_max = max(q_table[next_state_tuple].values())
+            q_table[state_tuple][action] = old_value + alpha * (reward + gamma * next_max - old_value)
+
+            state_tuple = next_state_tuple
+            steps += 1
+
+            if reward == 110:
+                succesful_policy = True
+
+
+        # Decay epsilon
+        epsilon *= 0.99
+
+    observed_states_no = len(observed_monitor_states)
+    print('success, no of states - ', observed_states_no, ', n - ', n)
+    return observed_states_no
+
 config_path = './examples/letter_env.yaml'
 
 
@@ -64,16 +128,27 @@ register(
     max_episode_steps=200
 )
 
-actions = [Actions.RIGHT.value, Actions.LEFT.value, Actions.UP.value, Actions.DOWN.value]
+unique_events, event_index = generate_events_and_index(states_for_encoding)
+initial_encoding = create_encoding(states_for_encoding[0],event_index)
 
-training_class = rml_training(learning_episode_letter, RMLGym, states_for_encoding, actions, config_path, n=5)
+results_df = pd.DataFrame(columns=['env', 'n_value', 'no_mon_states'])
+for env in [RMLGym, RMLGym_One_Hot]:
+    env_name = env.__name__
+    for n in [1,2,3,4,5]:
+        env_inst = env(event_index, initial_encoding, config_path)
+        result = learning_loop(n,env_inst)
+        new_row = pd.DataFrame([{'env': env_name, 'n_value': n, 'no_mon_states': result}])
+        results_df = pd.concat([results_df, new_row])
 
+for env in [RMLGym_Simple]:
+    env_name = env.__name__
+    for n in [1,2,3,4,5]:
+        env_inst = env(config_path)
+        result = learning_loop(n,env_inst)
+        new_row = pd.DataFrame([{'env': env_name, 'n_value': n, 'no_mon_states': result}])
+        results_df = pd.concat([results_df, new_row])
 
-results = training_class.get_test_statistics()
+print(results_df)
 
-print(results)
-
-"""
-with open('results/results_LetterEnv_RML_num_encoding.pkl', 'wb') as f:
-    pickle.dump(results, f)
-"""
+with open('results/machine_sizes_letterenv_RML.pkl', 'wb') as f:
+    pickle.dump(results_df, f)

@@ -46,7 +46,30 @@ def train_till_conv_repeat(
 
     return np.mean(sample_counts)
 
+def train_till_conv_repeat_letter(
+    actions,
+    agent,
+    env,
+    max_samples,
+    n_repeats=1,
+):
+    sample_counts = []
+
+    for _ in range(n_repeats):
+        agent.reset_training()
+        sample_count = train_conv_4(
+            actions,
+            agent,
+            env,
+            max_samples // 100,
+        )
+        sample_counts.append(sample_count)
+        # print(sample_count)
+
+    return np.mean(sample_counts)
+
 def train_till_conv_repeat_office(
+    actions,
     agent,
     env,
     max_samples,
@@ -60,6 +83,7 @@ def train_till_conv_repeat_office(
             agent,
             env,
             max_samples // 100,
+            actions
         )
         sample_counts.append(sample_count)
         # print(sample_count)
@@ -110,7 +134,7 @@ def train(
 def train_till_conv(
     agent,
     env,
-    max_samples,
+    max_samples
 ):
     sample_counter = 0
     done = False
@@ -181,6 +205,7 @@ def train_conv_3(
     agent,
     env,
     n_episodes,
+    actions
 ):
     # pbar = tqdm(range(n_episodes))
     rewards = []
@@ -191,10 +216,11 @@ def train_conv_3(
         obs = env.observation(obs)
 
         for t in range(500):
-            action = agent.get_action(obs)
+            action = agent.get_action(obs,env,actions)
             next_obs, reward, terminated, _, _ = env.step(action)
             next_obs = env.observation(next_obs)
             agent.update(obs, action, next_obs, reward, terminated)
+
             obs = next_obs
 
 
@@ -240,3 +266,44 @@ def eval_office_world(env,agent):
     if reward == 1:
         success = True
     return success
+
+def train_conv_4(
+    actions,
+    agent,
+    env,
+    n_episodes,
+):
+    # pbar = tqdm(range(n_episodes))
+    rewards = []
+    sample_count = 0
+    for episode in range(n_episodes):
+        agent.reset()
+        obs, _ = env.reset()
+        obs = env.observation(obs)
+
+        for t in range(100):
+            action = agent.get_action(obs,env,actions)
+            next_obs, reward, terminated, _, _ = env.step(action)
+            next_obs = env.observation(next_obs)
+            agent.update(obs, action, next_obs, reward, terminated)
+
+            obs = next_obs
+
+
+
+            sample_count += 1
+
+            if agent.terminated():
+                break
+
+        agent.decay_epsilon()
+        rewards.append(reward)
+
+        if episode >= 20:
+            ave = np.mean(rewards[-20:])
+            # pbar.set_description(
+            #     f"Episode {episode} | Reward {np.mean(rewards[-100:]):.2f}"
+            # )
+            if ave == 1:
+                break
+    return sample_count

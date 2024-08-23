@@ -9,15 +9,13 @@ from agents.counter_machine import (
     ContextFreeCounterMachine,
     CounterMachineCRMAgent,
 )
-
 from agents.reward_machine import (
     ContextFreeRewardMachine,
-    RewardMachineRSCRMAgent
+    RewardMachineRSCRMAgent,
 )
-
 from environments import (
     create_context_free_env_labelled,
-    create_context_free_env_mdp
+    create_context_free_env_mdp,
 )
 from environments.context_free import (
     labelled_action_space,
@@ -48,7 +46,6 @@ train_conv_kwargs = {
 }
 
 
-
 def create_counter_crm_agent():
     return CounterMachineCRMAgent(
         machine=ContextFreeCounterMachine(),
@@ -56,12 +53,14 @@ def create_counter_crm_agent():
         **agent_kwargs,
     )
 
+
 def create_reward_machine_rs_crm_agent(n):
     return RewardMachineRSCRMAgent(
         machine=ContextFreeRewardMachine(N=n),
         action_space=labelled_action_space,
         **agent_kwargs,
     )
+
 
 def get_agent_env_pairs(n):
     return (
@@ -74,7 +73,7 @@ def get_agent_env_pairs(n):
             "CRM+RS",
             create_reward_machine_rs_crm_agent(n),
             create_context_free_env_labelled(n),
-        )    
+        ),
     )
 
 
@@ -82,8 +81,10 @@ if __name__ == "__main__":
     if not os.path.exists("results"):
         os.mkdir("results")
 
+    np.random.seed(int(SEED))
+
     N = 5
-    convergence_results = {}
+    convergence_results = defaultdict(lambda: list())
 
     for n in range(1, N + 1):
         print(f"Training started for N = {n}")
@@ -93,30 +94,28 @@ if __name__ == "__main__":
             agent.epsilon_decay = 1.0 / (0.5 * N_EPISODES[n - 1])
             train_conv_kwargs["max_samples"] = 100 * N_EPISODES[n - 1]
 
-            if "CQL" in name:
-                    if n > 1:
-                        # Copy results from n = 1
-                        convergence_results[name][n] = convergence_results[name][1]
-                    else:
-                        convergence_results[name] = {1 :{'iteration':[],'result':[]}}
-                        for i in range(1, 21):
-                            conv_results = train_till_conv_repeat(agent, env, **train_conv_kwargs)
-                            print(conv_results)
-                            convergence_results[name][1]['iteration'].append(i)
-                            convergence_results[name][1]['result'].append(conv_results)
+            if "CQL" in name and n > 1:
+                # Skip as machine reusable
+                convergence_results[name].append(convergence_results[name][-1])
             else:
-                if n == 1:
-                    np.random.seed(int(SEED))
                 conv_results = train_till_conv_repeat(agent, env, **train_conv_kwargs)
-                if name not in convergence_results:
-                    convergence_results[name] = []
+                print(conv_results)
                 convergence_results[name].append(conv_results)
-    print(convergence_results)
-    
+
     with open(f"results/convergence_results_CF-{SEED}.pkl", "wb") as f:
         pickle.dump(dict(convergence_results), f)
 
     with open(f"results/convergence_results_CF-{SEED}.pkl", "rb") as f:
         convergence_results = pickle.load(f)
 
+    print(convergence_results)
 
+    for method_name, results in convergence_results.items():
+        plt.plot(
+            range(1, len(results) + 1), [np.mean(r) for r in results], label=method_name
+        )
+
+    plt.xlabel("N")
+    plt.ylabel("Episodes to Convergence")
+    plt.legend()
+    plt.show()

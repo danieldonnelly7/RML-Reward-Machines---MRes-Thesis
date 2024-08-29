@@ -1,4 +1,5 @@
 from envs.grid_environment import GridEnv, GridEnv_RNN
+from envs.grid_environment_old import GridEnv_Old
 from envs.letterenv import LetterEnv
 
 class RML_LetterEnv_5(GridEnv):
@@ -42,3 +43,35 @@ class RML_LetterEnv_5_Simple(RML_LetterEnv_5):
     metadata = {'render_modes': [22]}
     def __init__(self, render_mode = None):  # Only change from normal is monitor_states = 1 instead of 20
         super().__init__(number_of_monitor_states=1, render_mode = render_mode)
+
+
+class Letter_RMLEnv_Old(GridEnv_Old):
+    metadata = {'render_modes': [22]}
+    def __init__(self, render_mode = None):
+        self.N = 5
+        self._initialize_env()
+        config_path = './examples/letter_env.yaml'
+        super().__init__(self.env, config_path, render_mode)
+
+    def _initialize_env(self):
+        self.env = LetterEnv(
+            n_rows=6,
+            n_cols=6,
+            locations={
+                "A": (1, 1),
+                "B": (1, 4),
+                "C": (4, 1),
+            },
+            max_observation_counts={
+                "A": self.N,
+                "B": None,
+                "E": None,
+                "C": None,
+            },
+            replacement_mapping={"A": "E"},
+            task_string="A" * self.N + "E" + "B" + "C" * self.N
+        )
+
+    def set_n(self, n):
+        self.N = n
+        self._initialize_env()

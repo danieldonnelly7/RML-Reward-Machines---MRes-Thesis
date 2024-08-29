@@ -73,7 +73,7 @@ results = training_class.get_test_statistics()
 
 print(results)
 
-"""
+
 with open('results/results_LetterEnv_RML_num_encoding.pkl', 'wb') as f:
     pickle.dump(results, f)
-"""
+
